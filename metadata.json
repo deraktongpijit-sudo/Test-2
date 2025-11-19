@@ -1,0 +1,5 @@
+{
+  "name": "Billing Storyteller AI",
+  "description": "A React application that analyzes billing CSV data and generates narrative insights using Google Gemini API.",
+  "requestFramePermissions": []
+}
