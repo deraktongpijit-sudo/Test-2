@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FileUploader } from './components/FileUploader';
 import { StatsDashboard } from './components/StatsDashboard';
 import { parseCSV, calculateStats } from './services/dataProcessor';

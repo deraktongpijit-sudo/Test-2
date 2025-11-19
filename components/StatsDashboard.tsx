@@ -84,7 +84,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ stats }) => {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {stats.paymentTypeDist.map((entry, index) => (
+                  {stats.paymentTypeDist.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
