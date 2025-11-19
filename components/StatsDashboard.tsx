@@ -93,4 +93,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ stats }) => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        
+        </div>
+      </div>
+    </div>
+  );
+};
