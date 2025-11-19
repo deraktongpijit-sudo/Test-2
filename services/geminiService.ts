@@ -3,8 +3,9 @@ import { ProcessedStats } from "../types";
 
 export const generateBillingStory = async (stats: ProcessedStats): Promise<string> => {
   try {
+    // Accessing the key via process.env.API_KEY as configured in vite.config.ts
     if (!process.env.API_KEY) {
-      throw new Error("API Key is missing. Please set VITE_API_KEY in .env");
+      throw new Error("API Key is missing. Please set VITE_API_KEY in your .env file.");
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
