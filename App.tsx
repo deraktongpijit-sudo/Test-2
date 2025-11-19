@@ -3,21 +3,24 @@ import { FileUploader } from './components/FileUploader';
 import { StatsDashboard } from './components/StatsDashboard';
 import { parseCSV, calculateStats } from './services/dataProcessor';
 import { generateBillingStory } from './services/geminiService';
+import { saveAnalysisToDB } from './services/dbService';
 import { ProcessedStats, LoadingState } from './types';
 import ReactMarkdown from 'react-markdown';
-import { BookOpen, RotateCcw, AlertCircle, Loader2, Sparkles } from 'lucide-react';
+import { BookOpen, RotateCcw, AlertCircle, Loader2, Sparkles, Database, CheckCircle } from 'lucide-react';
 
 const App = () => {
   const [stats, setStats] = useState<ProcessedStats | null>(null);
   const [story, setStory] = useState<string>('');
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   const [error, setError] = useState<string | null>(null);
+  const [dbStatus, setDbStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const processFile = async (file: File) => {
     setLoadingState(LoadingState.PROCESSING);
     setError(null);
     setStats(null);
     setStory('');
+    setDbStatus('idle');
 
     try {
       // 1. Parse CSV
@@ -32,18 +35,31 @@ const App = () => {
 
       // 3. Generate Story
       setLoadingState(LoadingState.GENERATING_STORY);
-      // Note: In a real app, we might want to handle the promise separately 
-      // to show the dashboard immediately while the story loads.
-      // For now, we wait for the story to provide a complete experience.
+      
+      let aiStory = '';
       try {
-        const aiStory = await generateBillingStory(computedStats);
+        aiStory = await generateBillingStory(computedStats);
         setStory(aiStory);
       } catch (aiError: any) {
         console.error("AI Generation failed:", aiError);
-        setStory(`**Error generating story:** ${aiError.message}. \n\nThe statistics are still valid and displayed correctly.`);
+        const fallbackMsg = `**Error generating story:** ${aiError.message}. \n\nThe statistics are still valid and displayed correctly.`;
+        setStory(fallbackMsg);
+        aiStory = fallbackMsg; // Use fallback for DB
       }
       
       setLoadingState(LoadingState.COMPLETED);
+
+      // 4. Save to Supabase (Background Process)
+      if (aiStory && computedStats) {
+        setDbStatus('saving');
+        saveAnalysisToDB(computedStats, aiStory)
+          .then(() => setDbStatus('saved'))
+          .catch((err) => {
+            console.error("DB Save failed", err);
+            setDbStatus('error');
+          });
+      }
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || "An unexpected error occurred.");
@@ -56,6 +72,7 @@ const App = () => {
     setStory('');
     setError(null);
     setLoadingState(LoadingState.IDLE);
+    setDbStatus('idle');
   };
 
   return (
@@ -71,16 +88,42 @@ const App = () => {
               Billing Storyteller AI
             </h1>
           </div>
-          {loadingState !== LoadingState.IDLE && (
-             <button 
-               onClick={handleReset}
-               className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100"
-               disabled={loadingState === LoadingState.PROCESSING || loadingState === LoadingState.GENERATING_STORY}
-             >
-               <RotateCcw className="w-4 h-4" />
-               New Analysis
-             </button>
-          )}
+          <div className="flex items-center gap-4">
+            {/* DB Status Indicator */}
+            {loadingState === LoadingState.COMPLETED && (
+              <div className="flex items-center gap-1.5 text-xs font-medium animate-in fade-in">
+                {dbStatus === 'saving' && (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                    <span className="text-gray-500">Saving...</span>
+                  </>
+                )}
+                {dbStatus === 'saved' && (
+                  <>
+                    <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                    <span className="text-green-600">Saved to DB</span>
+                  </>
+                )}
+                {dbStatus === 'error' && (
+                  <>
+                    <Database className="w-3.5 h-3.5 text-red-400" />
+                    <span className="text-red-500">Save Failed</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {loadingState !== LoadingState.IDLE && (
+              <button 
+                onClick={handleReset}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-100"
+                disabled={loadingState === LoadingState.PROCESSING || loadingState === LoadingState.GENERATING_STORY}
+              >
+                <RotateCcw className="w-4 h-4" />
+                New Analysis
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -119,7 +162,7 @@ const App = () => {
                </div>
                <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 text-purple-600 font-bold">3</div>
-                 <p className="font-medium text-gray-700">Full Report</p>
+                 <p className="font-medium text-gray-700">Save & Report</p>
                </div>
             </div>
           </div>

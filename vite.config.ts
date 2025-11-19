@@ -10,9 +10,11 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // Polyfill process.env.API_KEY using VITE_API_KEY from the environment
-      // This ensures compatibility with the strict process.env usage while following Vite standards
+      // Polyfill process.env variables using VITE_ env vars
+      // This ensures compatibility with libraries expecting process.env
       'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY),
+      'process.env.SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
+      'process.env.SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
     },
   };
 });
